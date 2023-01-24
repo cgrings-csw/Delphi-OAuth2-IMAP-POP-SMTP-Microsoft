@@ -14,18 +14,19 @@ uses
   IdSASLXOAUTH,
   DeviceAuthFlow,
   ROPCFlow,
-  Global, FMX.Memo.Types, Data.Bind.Components, Data.Bind.ObjectScope, REST.Client, REST.Authenticator.OAuth, IdHTTP, REST.Authenticator.Basic, REST.Types;
+  Global, FMX.Memo.Types, Data.Bind.Components, Data.Bind.ObjectScope, REST.Client, REST.Authenticator.OAuth, IdHTTP, REST.Authenticator.Basic, REST.Types,
+  IdPOP3;
 
 type
   TFormIMAPTest = class(TForm)
-    btn_Authorization_Code_Flow: TButton;
     Memo1: TMemo;
     btn_Test_outlook_IMAP: TButton;
     IdSSLIOHandlerSocketOpenSSL1: TIdSSLIOHandlerSocketOpenSSL;
     IdIMAP4: TIdIMAP4;
-    btn_Device_Auth_Flow: TButton;
     Button1: TButton;
-    btn_Client_Credentials_Flow: TButton;
+    btnPop: TButton;
+    IdSSLIOHandlerSocketPOP: TIdSSLIOHandlerSocketOpenSSL;
+    IdPOP3: TIdPOP3;
     procedure OAuth2_Authorization_CodeAfterAuthorizeCode(Sender: TObject;
       const Code, State, Scope, RawParams: string; var Handled: Boolean);
     procedure OAuth2_Authorization_CodeAfterAccessToken(Sender: TObject;
@@ -36,23 +37,26 @@ type
     procedure btn_Device_Auth_FlowClick(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure Button1Click(Sender: TObject);
+    procedure btnPopClick(Sender: TObject);
     procedure OAuth2_Client_CredentialsAfterAccessToken(Sender: TObject;
       const Access_Token, Token_Type, Expires_In, Refresh_Token, Scope,
       RawParams: string; var Handled: Boolean);
   private
-    { Private declarations }
-    xOAuthSASL: TIdSASLListEntry;
+    FxOAuthSASLImap: TIdSASLListEntry;
+    FxOAuthSASLPop3: TIdSASLListEntry;
     FDevice_Authorization_Flow: TDevice_Authorization_Flow;
     FROPC_Flow: TROPC_Flow;
     procedure DoLog(logText: string);
-  public
-    { Public declarations }
   end;
 
 var
   FormIMAPTest: TFormIMAPTest;
 
 implementation
+
+uses
+  IdSASL;
+
 
 {$R *.fmx}
 
@@ -66,8 +70,9 @@ procedure TFormIMAPTest.btn_Test_outlook_IMAPClick(Sender: TObject);
 begin
   try
     try
-      if TIdSASLXOAuth(xOAuthSASL.SASL).Token <> '' then begin
-        if not TIdSASLXOAuth(xOAuthSASL.SASL).IsTokenExpired then begin
+      if TIdSASLXOAuth(FxOAuthSASLImap.SASL).Token <> '' then begin
+        if not TIdSASLXOAuth(FxOAuthSASLImap.SASL).IsTokenExpired then begin
+          DoLog(sLineBreak + 'IMAP');
           DoLog('Start Connect Outlook');
           IdIMAP4.Connect;
           DoLog('Connected Outlook');
@@ -87,7 +92,7 @@ begin
       end;
     end;
   finally
-    if TIdSASLXOAuth(xOAuthSASL.SASL).IsTokenExpired then TIdSASLXOAuth(xOAuthSASL.SASL).Token := '';
+    if TIdSASLXOAuth(FxOAuthSASLImap.SASL).IsTokenExpired then TIdSASLXOAuth(FxOAuthSASLImap.SASL).Token := '';
   end;
 end;
 
@@ -97,6 +102,47 @@ begin
   FROPC_Flow.Start;
 end;
 
+procedure TFormIMAPTest.btnPopClick(Sender: TObject);
+const
+  ST_OK = '+OK';
+  ST_SASLCONTINUE = '+';  {Do not translate}
+var
+  LxoauthSASL: TIdSASLListEntry;
+begin
+  try
+    try
+      if TIdSASLXOAuth(FxOAuthSASLPop3.SASL).Token <> '' then begin
+        if not TIdSASLXOAuth(FxOAuthSASLPop3.SASL).IsTokenExpired then
+        begin
+          IdPOP3.AuthType := patSASL;
+          DoLog(sLineBreak + 'POP3');
+          DoLog('Start Connect Outlook');
+          IdPOP3.Host := 'outlook.office365.com';
+          IdPOP3.UseTLS := utUseImplicitTLS;
+          DoLog('Connect Outlook');
+          IdPOP3.Connect;
+          IdPOP3.CAPA;
+          DoLog('Login Outlook');
+          IdPOP3.SASLMechanisms.LoginSASL('AUTH', IdPOP3.Host, 'pop', [ST_OK], [ST_SASLCONTINUE], IdPOP3, IdPOP3.Capabilities, 'SASL', False); {do not localize}
+          DoLog('Your Outlook TotalMsgs: ' + IdPOP3.CheckMessages.ToString);
+          IdPOP3.Disconnect;
+          DoLog('Disconnected Outlook');
+        end else begin
+          DoLog('Access Token is expired!!');
+        end;
+      end else begin
+        DoLog('Access Token is empty!!');
+      end;
+    except
+      on E: Exception do begin
+        DoLog('POP3 Exception: ' + E.ToString);
+      end;
+    end;
+  finally
+    if TIdSASLXOAuth(FxOAuthSASLPop3.SASL).IsTokenExpired then TIdSASLXOAuth(FxOAuthSASLPop3.SASL).Token := '';
+  end;
+end;
+
 procedure TFormIMAPTest.DoLog(logText: string);
 begin
   Memo1.Lines.Add(logText);
@@ -104,42 +150,52 @@ end;
 
 procedure TFormIMAPTest.FormCreate(Sender: TObject);
 begin
-  xOAuthSASL := IdIMAP4.SASLMechanisms.Add;
-  xOAuthSASL.SASL := TIdSASLXOAuth.Create(Self);
+  FxOAuthSASLImap := IdIMAP4.SASLMechanisms.Add;
+  FxOAuthSASLImap.SASL := TIdSASLXOAuth.Create(Self);
+
+  FxOAuthSASLPop3 := IdPOP3.SASLMechanisms.Add;
+  FxOAuthSASLPop3.SASL := TIdSASLXOAuth.Create(Self);
 
   //Device Authorization Flow
   FDevice_Authorization_Flow := TDevice_Authorization_Flow.Create;
   FDevice_Authorization_Flow.TenantID := TENANTID;
   FDevice_Authorization_Flow.ClientID := CLIENTID;
   FDevice_Authorization_Flow.Scope := SCOPE;
+
   FDevice_Authorization_Flow.OnAfterAuthorizeCode := procedure(AuthCode: string)
   begin
-    btn_Device_Auth_Flow.Enabled := False;
+//    btn_Device_Auth_Flow.Enabled := False;
     DoLog('Your Auth Code: ' + AuthCode);
   end;
+
   FDevice_Authorization_Flow.OnAfterAuthorizeGetExpireTime := procedure(ExpireTime: Integer)
   begin
-    btn_Device_Auth_Flow.Text := 'Use Device Authorization Flow - ' + IntToStr(ExpireTime) + 's';
+//    btn_Device_Auth_Flow.Text := 'Use Device Authorization Flow - ' + IntToStr(ExpireTime) + 's';
   end;
   FDevice_Authorization_Flow.OnAfterAccessToken := procedure(Device_ID, Access_Token, Token_Type: string; Expires_In: Integer; Scope: string)
   begin
-    btn_Device_Auth_Flow.Enabled := True;
-    btn_Device_Auth_Flow.Text := 'Use Device Authorization Flow';
+//    btn_Device_Auth_Flow.Enabled := True;
+//    btn_Device_Auth_Flow.Text := 'Use Device Authorization Flow';
     DoLog('Device_ID: ' + Device_ID + CRLF +
           'AccessToken: ' + Access_Token + CRLF +
           'Token_Type: ' + Token_Type + CRLF +
           'Expires_In: ' + IntToStr(Expires_In) + CRLF +
           'Scope: ' + Scope);
-    TIdSASLXOAuth(xOAuthSASL.SASL).Token := Access_Token;
-    TIdSASLXOAuth(xOAuthSASL.SASL).ExpireTime := IntToStr(Expires_In);
-    TIdSASLXOAuth(xOAuthSASL.SASL).User := EMAILACCOUNT; // outlook email account
+    TIdSASLXOAuth(FxOAuthSASLImap.SASL).Token := Access_Token;
+    TIdSASLXOAuth(FxOAuthSASLImap.SASL).ExpireTime := IntToStr(Expires_In);
+    TIdSASLXOAuth(FxOAuthSASLImap.SASL).User := EMAILACCOUNT; // outlook email account
+
+    TIdSASLXOAuth(FxOAuthSASLPop3.SASL).Token := Access_Token;
+    TIdSASLXOAuth(FxOAuthSASLPop3.SASL).ExpireTime := IntToStr(Expires_In);
+    TIdSASLXOAuth(FxOAuthSASLPop3.SASL).User := EMAILACCOUNT; // outlook email account
   end;
+
   FDevice_Authorization_Flow.OnErrorAccessToken := procedure(Error, ErrorDescription: string)
   begin
-    btn_Device_Auth_Flow.Text := 'Use Device Authorization Flow';
+//    btn_Device_Auth_Flow.Text := 'Use Device Authorization Flow';
     DoLog('Error: ' + Error + CRLF +
           'Error_Description: ' + ErrorDescription);
-    btn_Device_Auth_Flow.Enabled := True;
+//    btn_Device_Auth_Flow.Enabled := True;
   end;
 
   //ROPC Flow
@@ -156,9 +212,13 @@ begin
           'Token_Type: ' + Token_Type + CRLF +
           'Expires_In: ' + IntToStr(Expires_In) + CRLF +
           'Scope: ' + Scope);
-    TIdSASLXOAuth(xOAuthSASL.SASL).Token := Access_Token;
-    TIdSASLXOAuth(xOAuthSASL.SASL).ExpireTime := IntToStr(Expires_In);
-    TIdSASLXOAuth(xOAuthSASL.SASL).User := EMAILACCOUNT; // outlook email account
+    TIdSASLXOAuth(FxOAuthSASLImap.SASL).Token := Access_Token;
+    TIdSASLXOAuth(FxOAuthSASLImap.SASL).ExpireTime := IntToStr(Expires_In);
+    TIdSASLXOAuth(FxOAuthSASLImap.SASL).User := EMAILACCOUNT; // outlook email account
+
+    TIdSASLXOAuth(FxOAuthSASLPop3.SASL).Token := Access_Token;
+    TIdSASLXOAuth(FxOAuthSASLPop3.SASL).ExpireTime := IntToStr(Expires_In);
+    TIdSASLXOAuth(FxOAuthSASLPop3.SASL).User := EMAILACCOUNT; // outlook email account
   end;
   FROPC_Flow.OnErrorAccessToken := procedure(Error, ErrorDescription: string)
   begin
@@ -182,9 +242,13 @@ begin
         'Expires_In: ' + Expires_In + CRLF +
         'Refresh_Token: ' + Refresh_Token + CRLF +
         'Scope: ' + Scope);
-  TIdSASLXOAuth(xOAuthSASL.SASL).Token := Access_Token;
-  TIdSASLXOAuth(xOAuthSASL.SASL).ExpireTime := Expires_In;
-  TIdSASLXOAuth(xOAuthSASL.SASL).User := EMAILACCOUNT; // outlook email account
+  TIdSASLXOAuth(FxOAuthSASLImap.SASL).Token := Access_Token;
+  TIdSASLXOAuth(FxOAuthSASLImap.SASL).ExpireTime := Expires_In;
+  TIdSASLXOAuth(FxOAuthSASLImap.SASL).User := EMAILACCOUNT; // outlook email account
+
+  TIdSASLXOAuth(FxOAuthSASLPop3.SASL).Token := Access_Token;
+  TIdSASLXOAuth(FxOAuthSASLPop3.SASL).ExpireTime := Expires_In;
+  TIdSASLXOAuth(FxOAuthSASLPop3.SASL).User := EMAILACCOUNT; // outlook email account
 end;
 
 procedure TFormIMAPTest.OAuth2_Authorization_CodeAfterAuthorizeCode(Sender: TObject;
@@ -204,9 +268,14 @@ begin
         'Expires_In: ' + Expires_In + CRLF +
         'Refresh_Token: ' + Refresh_Token + CRLF +
         'Scope: ' + Scope);
-  TIdSASLXOAuth(xOAuthSASL.SASL).Token := Access_Token;
-  TIdSASLXOAuth(xOAuthSASL.SASL).ExpireTime := Expires_In;
-  TIdSASLXOAuth(xOAuthSASL.SASL).User := EMAILACCOUNT; // outlook email account
+
+  TIdSASLXOAuth(FxOAuthSASLImap.SASL).Token := Access_Token;
+  TIdSASLXOAuth(FxOAuthSASLImap.SASL).ExpireTime := Expires_In;
+  TIdSASLXOAuth(FxOAuthSASLImap.SASL).User := EMAILACCOUNT; // outlook email account
+
+  TIdSASLXOAuth(FxOAuthSASLPop3.SASL).Token := Access_Token;
+  TIdSASLXOAuth(FxOAuthSASLPop3.SASL).ExpireTime := Expires_In;
+  TIdSASLXOAuth(FxOAuthSASLPop3.SASL).User := EMAILACCOUNT; // outlook email account
 end;
 
 end.

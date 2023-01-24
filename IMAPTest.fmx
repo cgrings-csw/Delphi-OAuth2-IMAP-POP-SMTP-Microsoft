@@ -10,15 +10,6 @@ object FormIMAPTest: TFormIMAPTest
   OnCreate = FormCreate
   OnDestroy = FormDestroy
   DesignerMasterStyle = 0
-  object btn_Authorization_Code_Flow: TButton
-    Position.X = 8.000000000000000000
-    Position.Y = 8.000000000000000000
-    Size.Width = 185.000000000000000000
-    Size.Height = 22.000000000000000000
-    Size.PlatformDefault = False
-    TabOrder = 0
-    Text = 'Use Authorization Code Flow'
-  end
   object Memo1: TMemo
     Touch.InteractiveGestures = [Pan, LongTap, DoubleTap]
     DataDetectorTypes = []
@@ -27,53 +18,43 @@ object FormIMAPTest: TFormIMAPTest
     Size.Width = 801.000000000000000000
     Size.Height = 425.000000000000000000
     Size.PlatformDefault = False
-    TabOrder = 4
+    TabOrder = 3
     Viewport.Width = 797.000000000000000000
     Viewport.Height = 421.000000000000000000
   end
   object btn_Test_outlook_IMAP: TButton
-    Position.X = 728.000000000000000000
+    Position.X = 144.000000000000000000
     Position.Y = 8.000000000000000000
     TabOrder = 5
     Text = 'Get IMAP'
     OnClick = btn_Test_outlook_IMAPClick
   end
-  object btn_Device_Auth_Flow: TButton
-    Position.X = 400.000000000000000000
-    Position.Y = 8.000000000000000000
-    Size.Width = 193.000000000000000000
-    Size.Height = 22.000000000000000000
-    Size.PlatformDefault = False
-    TabOrder = 11
-    Text = 'Use Device Authorization Flow'
-    OnClick = btn_Device_Auth_FlowClick
-  end
   object Button1: TButton
-    Position.X = 600.000000000000000000
+    Position.X = 16.000000000000000000
     Position.Y = 8.000000000000000000
     Size.Width = 121.000000000000000000
     Size.Height = 22.000000000000000000
     Size.PlatformDefault = False
-    TabOrder = 15
+    TabOrder = 13
     Text = 'Use ROPC Flow'
     OnClick = Button1Click
   end
-  object btn_Client_Credentials_Flow: TButton
-    Position.X = 200.000000000000000000
+  object btnPop: TButton
+    Position.X = 240.000000000000000000
     Position.Y = 8.000000000000000000
-    Size.Width = 193.000000000000000000
-    Size.Height = 22.000000000000000000
-    Size.PlatformDefault = False
-    TabOrder = 10
-    Text = 'Use Client Credentials Flow'
+    TabOrder = 4
+    Text = 'Get POP3'
+    OnClick = btnPopClick
   end
   object IdSSLIOHandlerSocketOpenSSL1: TIdSSLIOHandlerSocketOpenSSL
-    Destination = 'outlook.office365.com:993'
+    Destination = 'outlook.office365.com:143'
     Host = 'outlook.office365.com'
     MaxLineAction = maException
-    Port = 993
+    Port = 143
     DefaultPort = 0
-    SSLOptions.Mode = sslmUnassigned
+    SSLOptions.Method = sslvTLSv1_2
+    SSLOptions.SSLVersions = [sslvTLSv1_2]
+    SSLOptions.Mode = sslmClient
     SSLOptions.VerifyMode = []
     SSLOptions.VerifyDepth = 0
     Left = 288
@@ -81,13 +62,33 @@ object FormIMAPTest: TFormIMAPTest
   end
   object IdIMAP4: TIdIMAP4
     IOHandler = IdSSLIOHandlerSocketOpenSSL1
-    Port = 993
     Host = 'outlook.office365.com'
-    UseTLS = utUseImplicitTLS
+    UseTLS = utUseRequireTLS
     SASLMechanisms = <>
     AuthType = iatSASL
     MilliSecsToWaitToClearBuffer = 10
     Left = 288
     Top = 200
+  end
+  object IdSSLIOHandlerSocketPOP: TIdSSLIOHandlerSocketOpenSSL
+    Destination = ':110'
+    MaxLineAction = maException
+    Port = 110
+    DefaultPort = 0
+    SSLOptions.Method = sslvTLSv1_2
+    SSLOptions.SSLVersions = [sslvTLSv1_2]
+    SSLOptions.Mode = sslmClient
+    SSLOptions.VerifyMode = []
+    SSLOptions.VerifyDepth = 0
+    Left = 512
+    Top = 160
+  end
+  object IdPOP3: TIdPOP3
+    IOHandler = IdSSLIOHandlerSocketPOP
+    AuthType = patSASL
+    AutoLogin = False
+    SASLMechanisms = <>
+    Left = 512
+    Top = 216
   end
 end
