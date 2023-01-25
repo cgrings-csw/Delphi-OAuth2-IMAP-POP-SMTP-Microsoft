@@ -79,6 +79,7 @@ begin
       begin
         if not TIdSASLXOAuth(FxOAuthSASLImap.SASL).IsTokenExpired then
         begin
+          IdIMAP4.UseTLS := utUseImplicitTLS;
           DoLog(sLineBreak + 'IMAP');
 
           DoLog('Start Connect Outlook');
@@ -131,7 +132,7 @@ begin
           DoLog(sLineBreak + 'POP3');
           DoLog('Start Connect Outlook');
           IdPOP3.Host := 'outlook.office365.com';
-//          IdPOP3.UseTLS := utUseImplicitTLS;
+          IdPOP3.UseTLS := utUseImplicitTLS;
 
           DoLog('Connect Outlook');
           IdPOP3.Connect;
