@@ -161,4 +161,31 @@ object FormIMAPTest: TFormIMAPTest
     Height = 21
     TabOrder = 1
   end
+  object chkLogDetailImap: TCheckBox
+    Left = 360
+    Top = 108
+    Width = 97
+    Height = 17
+    Caption = 'Log detail IMAP'
+    TabOrder = 12
+    OnClick = chkLogDetailImapClick
+  end
+  object chkLogDetailPop: TCheckBox
+    Left = 463
+    Top = 108
+    Width = 97
+    Height = 17
+    Caption = 'Log detail POP'
+    TabOrder = 13
+    OnClick = chkLogDetailPopClick
+  end
+  object chkLogDetailSmtp: TCheckBox
+    Left = 566
+    Top = 108
+    Width = 97
+    Height = 17
+    Caption = 'Log detail SMTP'
+    TabOrder = 14
+    OnClick = chkLogDetailSmtpClick
+  end
 end
