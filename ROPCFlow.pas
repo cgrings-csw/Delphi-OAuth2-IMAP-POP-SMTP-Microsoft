@@ -2,126 +2,140 @@ unit ROPCFlow;
 
 interface
 
-uses System.Classes, System.SysUtils, System.JSON, System.Threading, System.Net.URLClient, Winapi.ShellAPI, IdHTTP, IdSSLOpenSSL;
+uses
+  Winapi.ShellAPI,
+  System.Classes,
+  System.SysUtils,
+  System.JSON,
+  System.Threading,
+  System.Net.URLClient,
+  IdHTTP,
+  IdSSLOpenSSL;
 
 type
-  TOnErrorAccessToken = reference to procedure(Error, ErrorDescription: string);
-  TOnAfterAccessToken = reference to procedure(Access_Token, Token_Type: string; Expires_In: Integer; Scope: string);
+  TOnErrorAccessToken = reference to procedure(const Error, ErrorDescription: string);
+  TOnAfterAccessToken = reference to procedure(const AccessToken, TokenType: string; const ExpiresIn: Int32; const Scope: string);
 
-  TROPC_Flow = class
-  const
-    ROPCURL = 'https://login.microsoftonline.com/%s/oauth2/v2.0/token'; // ROPC Access Token URL
-    CLIENTIDSTRING = 'client_id=%s'; // ROPC Access Token post data -> client id
-    CLIENTSECRETSTRING = 'client_secret=%s'; // ROPC Access Token post data -> client secret
-    SCOPESTRING = 'scope=%s'; // ROPC Access Token -> scope
-    USERNAMESTRING = 'username=%s'; // Device Code Token post data -> username
-    PAWWORDSTRING = 'password=%s'; // Device Code Token post data -> password
-    GRANTTYPESTRING = 'grant_type=password'; // Device Code Token post data -> grant type
+  TropcFlow = class sealed(TObject)
   strict private
-    FTenantID: string;
-    FScope: string;
+  const
+    FFormatClientid: string = 'client_id=%s';
+    FFormatClientSecret: string = 'client_secret=%s';
+    FFormatGrantType: string = 'grant_type=password';
+    FFormatPassword: string = 'password=%s';
+    FFormatScope: string = 'scope=%s';
+    FFormatTokeUrl: string = 'https://login.microsoftonline.com/%s/oauth2/v2.0/token';
+    FFormatUserName: string = 'username=%s';
+  var
     FClientID: string;
     FClientSecret: string;
-    FPassword: string;
-    FUsername: string;
-
-    FVerification_URI: string;
-    FExpire_In: Integer;
-    FInterval: Integer;
-    IdHTTP_ROPC: TIdHTTP;
-    LHandler: TIdSSLIOHandlerSocketOpenSSL;
+    FExpireIn: Int32;
+    FIdHTTP: TIdHTTP;
+    FInterval: Int32;
     FOnAfterAccessToken: TOnAfterAccessToken;
     FOnErrorAccessToken: TOnErrorAccessToken;
+    FPassword: string;
+    FScope: string;
+    FTenantID: string;
+    FUsername: string;
+    FVerification_URI: string;
+    LHandler: TIdSSLIOHandlerSocketOpenSSL;
   public
     constructor Create;
     destructor Destroy; override;
     procedure Start;
-    property TenantID: string read FTenantID write FTenantID;
     property ClientID: string read FClientID write FClientID;
     property ClientSecret: string read FClientSecret write FClientSecret;
-    property Scope: string read FScope write FScope;
-    property Username: string read FUsername write FUsername;
     property Password: string read FPassword write FPassword;
+    property Scope: string read FScope write FScope;
+    property TenantID: string read FTenantID write FTenantID;
+    property Username: string read FUsername write FUsername;
     property OnAfterAccessToken: TOnAfterAccessToken read FOnAfterAccessToken write FOnAfterAccessToken;
     property OnErrorAccessToken: TOnErrorAccessToken read FOnErrorAccessToken write FOnErrorAccessToken;
   end;
 
 implementation
 
-{ TROPC_Flow }
-constructor TROPC_Flow.Create;
+constructor TropcFlow.Create;
 begin
-  FClientID := '';
-  FClientSecret := '';
-  FTenantID := '';
-  FScope := '';
-  FUsername := '';
-  FPassword := '';
   LHandler := TIdSSLIOHandlerSocketOpenSSL.Create(nil);
   LHandler.SSLOptions.SSLVersions := [sslvTLSv1_2];
   LHandler.SSLOptions.Mode := sslmClient;
   LHandler.SSLOptions.VerifyMode := [];
   LHandler.SSLOptions.VerifyDepth := 0;
 
-  IdHTTP_ROPC := TIdHTTP.Create(nil);
-  IdHTTP_ROPC.IOHandler := LHandler;
-  IdHTTP_ROPC.Request.ContentEncoding := 'UTF-8';
-  IdHTTP_ROPC.Request.ContentType := 'application/x-www-form-urlencoded';
+  FIdHTTP := TIdHTTP.Create(nil);
+  FIdHTTP.IOHandler := LHandler;
+  FIdHTTP.Request.ContentEncoding := 'UTF-8';
+  FIdHTTP.Request.ContentType := 'application/x-www-form-urlencoded';
 end;
 
-destructor TROPC_Flow.Destroy;
+destructor TropcFlow.Destroy;
 begin
-  if Assigned(LHandler) then FreeAndNil(LHandler);
-  if Assigned(IdHTTP_ROPC) then FreeAndNil(IdHTTP_ROPC);
+  LHandler.Free;
+  FIdHTTP.Free;
+
   inherited;
 end;
 
-procedure TROPC_Flow.Start;
+procedure TropcFlow.Start;
 var
-  postData: TStrings;
-  FResponseString: string;
-  FResponseJSON: TJSONObject;
   FErrResponseJSON: TJSONObject;
+  FResponseJSON: TJSONObject;
+  FResponseString: string;
+  postData: TStrings;
 begin
-  if (FClientID <> '') and
-     (FClientSecret <> '') and
-     (FTenantID <> '') and
-     (FScope <> '') and
-     (FUsername <> '') and
-     (FPassword <> '') then begin
+  if (not FClientID.IsEmpty) and
+     (not FClientSecret.IsEmpty) and
+     (not FTenantID.IsEmpty) and
+     (not FScope.IsEmpty) and
+     (not FUsername.IsEmpty) and
+     (not FPassword.IsEmpty) then
+  begin
     try
       try
         // Post Data
         postData := TStringList.Create;
-        postData.Add(Format(CLIENTIDSTRING, [FClientID]));
-        postData.Add(Format(CLIENTSECRETSTRING, [FClientSecret]));
-        postData.Add(Format(SCOPESTRING, [FScope]));
-        postData.Add(Format(USERNAMESTRING, [FUsername]));
-        postData.Add(Format(PAWWORDSTRING, [FPassword]));
-        postData.Add(GRANTTYPESTRING);
+        postData.Add(Format(FFormatClientid, [FClientID]));
+        postData.Add(Format(FFormatClientSecret, [FClientSecret]));
+        postData.Add(Format(FFormatScope, [FScope]));
+        postData.Add(Format(FFormatUserName, [FUsername]));
+        postData.Add(Format(FFormatPassword, [FPassword]));
+        postData.Add(FFormatGrantType);
         // Call Device Auth API
-        FResponseString := IdHTTP_ROPC.Post(Format(ROPCURL, [FTenantID]), postData);
+        FResponseString := FIdHTTP.Post(Format(FFormatTokeUrl, [FTenantID]), postData);
         // Response JSON
         FResponseJSON := TJSONObject.ParseJSONValue(FResponseString) as TJSONObject;
         // Callback Auth Code
-        if Assigned(FOnAfterAccessToken) then FOnAfterAccessToken(FResponseJSON.GetValue('access_token').AsType<string>,
-                                                                  FResponseJSON.GetValue('token_type').AsType<string>,
-                                                                  FResponseJSON.GetValue('expires_in').AsType<Integer>,
-                                                                  FResponseJSON.GetValue('scope').AsType<string>);
+        if Assigned(FOnAfterAccessToken) then
+          FOnAfterAccessToken(FResponseJSON.GetValue('access_token').AsType<string>,
+                              FResponseJSON.GetValue('token_type').AsType<string>,
+                              FResponseJSON.GetValue('expires_in').AsType<Integer>,
+                              FResponseJSON.GetValue('scope').AsType<string>);
       except
-        on E: EIdHTTPProtocolException do begin
+        on E: EIdHTTPProtocolException do
+        begin
           // Http Error
           FErrResponseJSON := TJSONObject.ParseJSONValue(E.ErrorMessage) as TJSONObject;
-          if Assigned(OnErrorAccessToken) then OnErrorAccessToken(FResponseJSON.GetValue('error').AsType<string>, FResponseJSON.GetValue('error_description').AsType<string>);
-          if Assigned(FErrResponseJSON) then FreeAndNil(FErrResponseJSON);
+
+          if Assigned(OnErrorAccessToken) then
+            OnErrorAccessToken(FResponseJSON.GetValue('error').AsType<string>, FResponseJSON.GetValue('error_description').AsType<string>);
+
+          if Assigned(FErrResponseJSON) then
+            FreeAndNil(FErrResponseJSON);
         end;
       end;
     finally
-      if Assigned(postData) then FreeAndNil(postData);
-      if Assigned(FResponseJSON) then FreeAndNil(FResponseJSON);
+      if Assigned(postData) then
+        postData.Free;
+      if Assigned(FResponseJSON) then
+        FResponseJSON.Free;
     end;
-  end else begin
+  end
+  else
+  begin
     raise Exception.Create('Not set Client ID or Client Secret or Tenant ID or Scope or Username or Password');
   end;
 end;
+
 end.

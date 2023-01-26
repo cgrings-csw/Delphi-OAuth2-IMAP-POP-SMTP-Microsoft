@@ -5,13 +5,12 @@ interface
 uses
   System.SysUtils,
   System.DateUtils,
-  Classes,
-  IdSASL
-  ;
+  System.Classes,
+  IdSASL;
 
 type
-  TIdSASLXOAuth = class(TIdSASL)
-  private
+  TIdSASLXOAuth = class sealed(TIdSASL)
+  strict private
     FToken: string;
     FUser: string;
     FExpireTime: string;
@@ -34,8 +33,6 @@ type
 
 implementation
 
-{ TIdSASLXOAuth }
-
 class function TIdSASLXOAuth.ServiceName: TIdSASLServiceName;
 begin
   Result := 'XOAUTH2';
@@ -44,6 +41,7 @@ end;
 constructor TIdSASLXOAuth.Create(AOwner: TComponent);
 begin
   inherited;
+
   FExpireTime := '3599';
 end;
 
@@ -76,7 +74,7 @@ end;
 procedure TIdSASLXOAuth.GetToken(const Value: string);
 begin
   FToken := Value;
-  FGetTokenDateTime := now;
+  FGetTokenDateTime := Now;
 end;
 
 function TIdSASLXOAuth.IsTokenExpired: Boolean;

@@ -1,11 +1,9 @@
 program OAuth2IMAP;
 
 uses
-  System.StartUpCopy,
-  FMX.Forms,
+  VCL.Forms,
   IMAPTest in 'IMAPTest.pas' {FormIMAPTest},
   IdSASLXOAUTH in 'IdSASLXOAUTH.pas',
-  DeviceAuthFlow in 'DeviceAuthFlow.pas',
   ROPCFlow in 'ROPCFlow.pas',
   Global in 'Global.pas';
 
