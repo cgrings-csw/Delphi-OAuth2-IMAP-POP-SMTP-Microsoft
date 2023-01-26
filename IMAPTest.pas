@@ -100,6 +100,7 @@ type
     procedure OAuth2ClientCredentialsAfterAccessToken(const Sender: TObject; const AccessToken, TokenType, ExpiresIn, RefreshToken, Scope, RawParams: string; var
       Handled: Boolean);
     procedure SettingAuthentication;
+    procedure StatusConnection(ASender: TObject; const AStatus: TIdStatus; const AStatusText: string);
   end;
 
 var
@@ -326,6 +327,7 @@ begin
   FIdIMAP4.UseTLS := utUseImplicitTLS;
   FIdIMAP4.AuthType := iatSASL;
   FIdIMAP4.MilliSecsToWaitToClearBuffer := 10;
+  FIdIMAP4.OnStatus := StatusConnection;
 end;
 
 procedure TFormIMAPTest.CreateIdPOP3;
@@ -335,6 +337,7 @@ begin
   FIdPOP3.UseTLS := utUseImplicitTLS;
   FIdPOP3.AuthType := patSASL;
   FIdPOP3.AutoLogin := False;
+  FIdPOP3.OnStatus := StatusConnection;
 end;
 
 procedure TFormIMAPTest.CreateIdSMTP;
@@ -343,6 +346,7 @@ begin
   FIdSMTP.IOHandler := FIdSSLIOHandlerSocketOpenSSLSmtp;
   FIdSMTP.AuthType := satSASL;
   FIdSMTP.UseTLS := utUseRequireTLS;
+  FIdSMTP.OnStatus := StatusConnection;
 end;
 
 procedure TFormIMAPTest.CreateIdSSLIOHandlerSocketOpenSSLPop;
@@ -453,6 +457,11 @@ begin
   FRopcFlow.Password := edtEmailPassword.Text;
   FRopcFlow.OnAfterAccessToken := AfterAccessToken;
   FRopcFlow.OnErrorAccessToken := ErrorAccessToken;
+end;
+
+procedure TFormIMAPTest.StatusConnection(ASender: TObject; const AStatus: TIdStatus; const AStatusText: string);
+begin
+  DoLog(AStatusText);
 end;
 
 end.

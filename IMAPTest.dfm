@@ -110,7 +110,6 @@ object FormIMAPTest: TFormIMAPTest
     Anchors = [akLeft, akTop, akRight, akBottom]
     ScrollBars = ssBoth
     TabOrder = 11
-    ExplicitHeight = 378
   end
   object edtTenantId: TEdit
     Left = 8
