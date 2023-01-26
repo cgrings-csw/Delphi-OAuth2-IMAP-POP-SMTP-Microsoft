@@ -285,7 +285,7 @@ begin
     except
       on E: Exception do
       begin
-        DoLog('POP3 Exception: ' + E.ToString);
+        DoLog('SMTP Exception: ' + E.ToString);
       end;
     end;
   finally
@@ -301,7 +301,7 @@ begin
   FIdSSLIOHandlerSocketOpenSSLImap.Port := 993;
   FIdSSLIOHandlerSocketOpenSSLImap.SSLOptions.Method := sslvTLSv1_2;
   FIdSSLIOHandlerSocketOpenSSLImap.SSLOptions.SSLVersions := [sslvTLSv1_2];
-//  FIdSSLIOHandlerSocketOpenSSLImap.SSLOptions.Mode := sslmClient;
+  FIdSSLIOHandlerSocketOpenSSLImap.SSLOptions.Mode := sslmClient;
 end;
 
 procedure TFormIMAPTest.CrateIdSSLIOHandlerSocketOpenSSLSmtp;
