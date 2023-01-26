@@ -1,11 +1,9 @@
-# Delphi-OAuth2IMAP
+# 
+Delphi-OAuth2-IMAP-POP-SMTP-Microsoft
 
-use delphi IMAP to authenticate with OAuth2.0 for Microsoft Outlook
+use delphi IMAP/POP and SMTP to authenticate with OAuth2.0 for Microsoft Outlook
 
-# Update
-- 2022/07/25 
-  - DeviceAuthFlow/ROPCFlow Add TLS1.2
-  - Add Client Credentials Flow to authenticate IMAP
+# VCL native
 
 ## Azure Active Directory設定
 - [Azure Active Directory註冊應用程式](https://www.momochenisme.com/2023/01/azure-active-directory-application-registration.html)
