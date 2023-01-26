@@ -32,7 +32,9 @@ uses
   Global,
   IdPOP3,
   IdSMTPBase,
-  IdSMTP;
+  IdSMTP,
+  IdIntercept,
+  IdGlobal;
 
 type
   TFormIMAPTest = class(TForm)
@@ -67,6 +69,7 @@ type
     FScope: string = 'https://outlook.office365.com/.default';
     FUrlToken: string = 'https://login.microsoftonline.com/%s/oauth2/v2.0/token';
   var
+    FIdConnectionInterceptIMAP: TIdConnectionIntercept;
     FIdIMAP4: TIdIMAP4;
     FIdPOP3: TIdPOP3;
     FIdSMTP: TIdSMTP;
@@ -90,6 +93,8 @@ type
     procedure CreateIdSSLIOHandlerSocketOpenSSLPop;
     procedure DoLog(const Text: string);
     procedure ErrorAccessToken(const Error, ErrorDescription: string);
+    procedure IdConnectionReceive(ASender: TIdConnectionIntercept; var ABuffer: TIdBytes);
+    procedure IdConnectionSend(ASender: TIdConnectionIntercept; var ABuffer: TIdBytes);
     procedure OAuth2AuthorizationCodeAfterAccessToken(Sender: TObject; const Access_Token, Token_Type, Expires_In, Refresh_Token, Scope, RawParams: string; var
       Handled: Boolean);
     procedure OAuth2ClientCredentialsAfterAccessToken(const Sender: TObject; const AccessToken, TokenType, ExpiresIn, RefreshToken, Scope, RawParams: string; var
@@ -104,7 +109,9 @@ var
 implementation
 
 uses
-  IdSASL, IdMessage, XSuperObject;
+  IdSASL,
+  IdMessage,
+  XSuperObject;
 
 {$R *.dfm}
 
@@ -302,6 +309,7 @@ begin
   FIdSSLIOHandlerSocketOpenSSLImap.SSLOptions.Method := sslvTLSv1_2;
   FIdSSLIOHandlerSocketOpenSSLImap.SSLOptions.SSLVersions := [sslvTLSv1_2];
   FIdSSLIOHandlerSocketOpenSSLImap.SSLOptions.Mode := sslmClient;
+  FIdSSLIOHandlerSocketOpenSSLImap.Intercept := FIdConnectionInterceptIMAP;
 end;
 
 procedure TFormIMAPTest.CrateIdSSLIOHandlerSocketOpenSSLSmtp;
@@ -324,6 +332,7 @@ begin
   FIdIMAP4.AuthType := iatSASL;
   FIdIMAP4.MilliSecsToWaitToClearBuffer := 10;
   FIdIMAP4.OnStatus := StatusConnection;
+  FIdIMAP4.Intercept := FIdConnectionInterceptIMAP;
 end;
 
 procedure TFormIMAPTest.CreateIdPOP3;
@@ -376,6 +385,10 @@ begin
   edtScope.Text := FScope;
   edtUrlToken.Text := FUrlToken;
 
+  FIdConnectionInterceptIMAP := TIdConnectionIntercept.Create(Self);
+  FIdConnectionInterceptIMAP.OnReceive := IdConnectionReceive;
+  FIdConnectionInterceptIMAP.OnSend := IdConnectionSend;
+
   CrateIdSSLIOHandlerSocketOpenSSLImap;
   CrearteIdIMAP4;
   FxOAuthSASLImap := FIdIMAP4.SASLMechanisms.Add;
@@ -399,9 +412,14 @@ begin
   FRopcFlow.Free;
 end;
 
-procedure TFormIMAPTest.StatusConnection(ASender: TObject; const AStatus: TIdStatus; const AStatusText: string);
+procedure TFormIMAPTest.IdConnectionReceive(ASender: TIdConnectionIntercept; var ABuffer: TIdBytes);
 begin
-  DoLog(AStatusText);
+  DoLog('R:' + TEncoding.ASCII.GetString(ABuffer));
+end;
+
+procedure TFormIMAPTest.IdConnectionSend(ASender: TIdConnectionIntercept; var ABuffer: TIdBytes);
+begin
+  DoLog('S:' + TEncoding.ASCII.GetString(ABuffer));
 end;
 
 procedure TFormIMAPTest.OAuth2AuthorizationCodeAfterAccessToken(Sender: TObject; const Access_Token, Token_Type, Expires_In, Refresh_Token, Scope, RawParams:
@@ -458,6 +476,11 @@ begin
   FRopcFlow.Password := edtEmailPassword.Text;
   FRopcFlow.OnAfterAccessToken := AfterAccessToken;
   FRopcFlow.OnErrorAccessToken := ErrorAccessToken;
+end;
+
+procedure TFormIMAPTest.StatusConnection(ASender: TObject; const AStatus: TIdStatus; const AStatusText: string);
+begin
+  DoLog(AStatusText);
 end;
 
 end.
