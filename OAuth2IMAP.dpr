@@ -5,7 +5,9 @@ uses
   IMAPTest in 'IMAPTest.pas' {FormIMAPTest},
   IdSASLXOAUTH in 'IdSASLXOAUTH.pas',
   ROPCFlow in 'ROPCFlow.pas',
-  Global in 'Global.pas';
+  Global in 'Global.pas',
+  XSuperObject in 'x-superobject\XSuperObject.pas',
+  XSuperJSON in 'x-superobject\XSuperJSON.pas';
 
 {$R *.res}
 

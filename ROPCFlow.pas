@@ -6,9 +6,6 @@ uses
   Winapi.ShellAPI,
   System.Classes,
   System.SysUtils,
-  System.JSON,
-  System.Threading,
-  System.Net.URLClient,
   IdHTTP,
   IdSSLOpenSSL;
 
@@ -56,6 +53,9 @@ type
 
 implementation
 
+uses
+  XSuperObject;
+
 constructor TropcFlow.Create;
 begin
   LHandler := TIdSSLIOHandlerSocketOpenSSL.Create(nil);
@@ -80,8 +80,8 @@ end;
 
 procedure TropcFlow.Start;
 var
-  FErrResponseJSON: TJSONObject;
-  FResponseJSON: TJSONObject;
+  FErrResponseJSON: ISuperObject;
+  FResponseJSON: ISuperObject;
   FResponseString: string;
   postData: TStrings;
 begin
@@ -90,7 +90,7 @@ begin
      (not FTenantID.IsEmpty) and
      (not FScope.IsEmpty) and
      (not FUsername.IsEmpty) and
-     (not FPassword.IsEmpty) then
+     (not FPassword.IsEmpty)  then
   begin
     try
       try
@@ -105,31 +105,26 @@ begin
         // Call Device Auth API
         FResponseString := FIdHTTP.Post(Format(FFormatTokeUrl, [FTenantID]), postData);
         // Response JSON
-        FResponseJSON := TJSONObject.ParseJSONValue(FResponseString) as TJSONObject;
+        FResponseJSON := SO(FResponseString);
         // Callback Auth Code
         if Assigned(FOnAfterAccessToken) then
-          FOnAfterAccessToken(FResponseJSON.GetValue('access_token').AsType<string>,
-                              FResponseJSON.GetValue('token_type').AsType<string>,
-                              FResponseJSON.GetValue('expires_in').AsType<Integer>,
-                              FResponseJSON.GetValue('scope').AsType<string>);
+          FOnAfterAccessToken(FResponseJSON.S['access_token'],
+                              FResponseJSON.S['token_type'],
+                              FResponseJSON.I['expires_in'],
+                              FResponseJSON.S['scope']);
       except
         on E: EIdHTTPProtocolException do
         begin
           // Http Error
-          FErrResponseJSON := TJSONObject.ParseJSONValue(E.ErrorMessage) as TJSONObject;
+          FErrResponseJSON := SO(E.ErrorMessage);
 
           if Assigned(OnErrorAccessToken) then
-            OnErrorAccessToken(FResponseJSON.GetValue('error').AsType<string>, FResponseJSON.GetValue('error_description').AsType<string>);
-
-          if Assigned(FErrResponseJSON) then
-            FreeAndNil(FErrResponseJSON);
+            OnErrorAccessToken(FResponseJSON.S['error'], FResponseJSON.S['error_description']);
         end;
       end;
     finally
       if Assigned(postData) then
         postData.Free;
-      if Assigned(FResponseJSON) then
-        FResponseJSON.Free;
     end;
   end
   else

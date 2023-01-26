@@ -23,7 +23,7 @@ type
     class function ServiceName: TIdSASLServiceName; override;
     constructor Create(AOwner: TComponent);
     destructor Destroy; override;
-    function TryStartAuthenticate(const AHost, AProtocolName : String; var VInitialResponse: String): Boolean; override;
+    function TryStartAuthenticate(const AHost, AProtocolName : String; var VInitialResponse: String): Boolean;
     function ContinueAuthenticate(const ALastResponse, AHost, AProtocolName : string): string; override;
     function StartAuthenticate(const AChallenge, AHost, AProtocolName: string): string; override;
     { For cleaning up after Authentication }

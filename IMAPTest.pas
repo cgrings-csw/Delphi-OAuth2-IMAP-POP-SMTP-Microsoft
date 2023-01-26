@@ -30,11 +30,6 @@ uses
   IdSASLXOAUTH,
   ROPCFlow,
   Global,
-  REST.Client,
-  REST.Authenticator.OAuth,
-  IdHTTP,
-  REST.Authenticator.Basic,
-  REST.Types,
   IdPOP3,
   IdSMTPBase,
   IdSMTP;
@@ -100,6 +95,7 @@ type
     procedure OAuth2ClientCredentialsAfterAccessToken(const Sender: TObject; const AccessToken, TokenType, ExpiresIn, RefreshToken, Scope, RawParams: string; var
       Handled: Boolean);
     procedure SettingAuthentication;
+    procedure StatusConnection(ASender: TObject; const AStatus: TIdStatus; const AStatusText: string);
   end;
 
 var
@@ -108,7 +104,7 @@ var
 implementation
 
 uses
-  IdSASL, IdMessage;
+  IdSASL, IdMessage, XSuperObject;
 
 {$R *.dfm}
 
@@ -116,7 +112,7 @@ procedure TFormIMAPTest.AfterAccessToken(const AccessToken, TokenType: string; c
 begin
   DoLog('AccessToken: ' + AccessToken);
   DoLog('Token_Type: ' + TokenType);
-  DoLog('Expires_In: ' + ExpiresIn.ToString);
+  DoLog(Format('Expires_In: %d', [ExpiresIn]));
   DoLog('Scope: ' + Scope);
 
   TIdSASLXOAuth(FxOAuthSASLImap.SASL).Token := AccessToken;
@@ -176,7 +172,7 @@ begin
             DoLog('Connected Outlook');
             FIdIMAP4.SelectMailBox('INBOX');
 
-            DoLog('Your Outlook TotalMsgs: ' + FIdIMAP4.MailBox.TotalMsgs.ToString);
+            DoLog(Format('Your Outlook TotalMsgs: %d', [FIdIMAP4.MailBox.TotalMsgs]));
           finally
             FIdIMAP4.Disconnect;
             DoLog('Disconnected Outlook');
@@ -221,8 +217,8 @@ begin
           try
             FIdPOP3.CAPA;
             DoLog('Login Outlook');
-            FIdPOP3.SASLMechanisms.LoginSASL('AUTH', FIdPOP3.Host, 'pop', [ST_OK], [ST_SASLCONTINUE], FIdPOP3, FIdPOP3.Capabilities, 'SASL', False); {do not localize}
-            DoLog('Your Outlook TotalMsgs: ' + FIdPOP3.CheckMessages.ToString);
+            FIdPOP3.SASLMechanisms.LoginSASL('AUTH', FIdPOP3.Host, 'pop', [ST_OK], [ST_SASLCONTINUE], FIdPOP3, FIdPOP3.Capabilities, 'SASL'); {do not localize}
+            DoLog(Format('Your Outlook TotalMsgs: %d', [FIdPOP3.CheckMessages]));
           finally
             FIdPOP3.Disconnect;
             DoLog('Disconnected Outlook');
@@ -302,17 +298,17 @@ procedure TFormIMAPTest.CrateIdSSLIOHandlerSocketOpenSSLImap;
 begin
   FIdSSLIOHandlerSocketOpenSSLImap := TIdSSLIOHandlerSocketOpenSSL.Create(Self);
   FIdSSLIOHandlerSocketOpenSSLImap.Host := FHost;
-  FIdSSLIOHandlerSocketOpenSSLImap.Port := 143;
+  FIdSSLIOHandlerSocketOpenSSLImap.Port := 993;
   FIdSSLIOHandlerSocketOpenSSLImap.SSLOptions.Method := sslvTLSv1_2;
   FIdSSLIOHandlerSocketOpenSSLImap.SSLOptions.SSLVersions := [sslvTLSv1_2];
-  FIdSSLIOHandlerSocketOpenSSLImap.SSLOptions.Mode := sslmClient;
+//  FIdSSLIOHandlerSocketOpenSSLImap.SSLOptions.Mode := sslmClient;
 end;
 
 procedure TFormIMAPTest.CrateIdSSLIOHandlerSocketOpenSSLSmtp;
 begin
   FIdSSLIOHandlerSocketOpenSSLSmtp := TIdSSLIOHandlerSocketOpenSSL.Create(Self);
   FIdSSLIOHandlerSocketOpenSSLSmtp.Host := FHost;
-  FIdSSLIOHandlerSocketOpenSSLSmtp.Port := 25;
+  FIdSSLIOHandlerSocketOpenSSLSmtp.Port := 587;
   FIdSSLIOHandlerSocketOpenSSLSmtp.SSLOptions.Method := sslvTLSv1_2;
   FIdSSLIOHandlerSocketOpenSSLSmtp.SSLOptions.SSLVersions := [sslvTLSv1_2];
   FIdSSLIOHandlerSocketOpenSSLSmtp.SSLOptions.Mode := sslmClient;
@@ -323,9 +319,11 @@ begin
   FIdIMAP4 := TIdIMAP4.Create(Self);
   FIdIMAP4.IOHandler := FIdSSLIOHandlerSocketOpenSSLImap;
   FIdIMAP4.Host := FHost;
+  FIdIMAP4.Port := 993;
   FIdIMAP4.UseTLS := utUseImplicitTLS;
   FIdIMAP4.AuthType := iatSASL;
   FIdIMAP4.MilliSecsToWaitToClearBuffer := 10;
+  FIdIMAP4.OnStatus := StatusConnection;
 end;
 
 procedure TFormIMAPTest.CreateIdPOP3;
@@ -335,6 +333,7 @@ begin
   FIdPOP3.UseTLS := utUseImplicitTLS;
   FIdPOP3.AuthType := patSASL;
   FIdPOP3.AutoLogin := False;
+  FIdPOP3.OnStatus := StatusConnection;
 end;
 
 procedure TFormIMAPTest.CreateIdSMTP;
@@ -343,13 +342,14 @@ begin
   FIdSMTP.IOHandler := FIdSSLIOHandlerSocketOpenSSLSmtp;
   FIdSMTP.AuthType := satSASL;
   FIdSMTP.UseTLS := utUseRequireTLS;
+  FIdSMTP.OnStatus := StatusConnection;
 end;
 
 procedure TFormIMAPTest.CreateIdSSLIOHandlerSocketOpenSSLPop;
 begin
   FIdSSLIOHandlerSocketOpenSSLPop := TIdSSLIOHandlerSocketOpenSSL.Create(Self);
   FIdSSLIOHandlerSocketOpenSSLPop.Host := FHost;
-  FIdSSLIOHandlerSocketOpenSSLPop.Port := 110;
+  FIdSSLIOHandlerSocketOpenSSLPop.Port := 995;
   FIdSSLIOHandlerSocketOpenSSLPop.SSLOptions.Method := sslvTLSv1_2;
   FIdSSLIOHandlerSocketOpenSSLPop.SSLOptions.SSLVersions := [sslvTLSv1_2];
   FIdSSLIOHandlerSocketOpenSSLPop.SSLOptions.Mode := sslmClient;
@@ -397,6 +397,11 @@ end;
 procedure TFormIMAPTest.FormDestroy(Sender: TObject);
 begin
   FRopcFlow.Free;
+end;
+
+procedure TFormIMAPTest.StatusConnection(ASender: TObject; const AStatus: TIdStatus; const AStatusText: string);
+begin
+  DoLog(AStatusText);
 end;
 
 procedure TFormIMAPTest.OAuth2AuthorizationCodeAfterAccessToken(Sender: TObject; const Access_Token, Token_Type, Expires_In, Refresh_Token, Scope, RawParams:
