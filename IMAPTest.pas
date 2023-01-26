@@ -42,6 +42,10 @@ type
     btnPop: TButton;
     btnSmtp: TButton;
     btn_Test_outlook_IMAP: TButton;
+    chkLogDetailAuth: TCheckBox;
+    chkLogDetailImap: TCheckBox;
+    chkLogDetailPop: TCheckBox;
+    chkLogDetailSmtp: TCheckBox;
     edtClientId: TEdit;
     edtClientSecret: TEdit;
     edtEmailAccount: TEdit;
@@ -61,6 +65,10 @@ type
     procedure btnPopClick(Sender: TObject);
     procedure btnSmtpClick(Sender: TObject);
     procedure btn_Test_outlook_IMAPClick(Sender: TObject);
+    procedure chkLogDetailAuthClick(Sender: TObject);
+    procedure chkLogDetailImapClick(Sender: TObject);
+    procedure chkLogDetailPopClick(Sender: TObject);
+    procedure chkLogDetailSmtpClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
   strict private
@@ -70,6 +78,8 @@ type
     FUrlToken: string = 'https://login.microsoftonline.com/%s/oauth2/v2.0/token';
   var
     FIdConnectionInterceptIMAP: TIdConnectionIntercept;
+    FIdConnectionInterceptPop: TIdConnectionIntercept;
+    FIdConnectionInterceptSmtp: TIdConnectionIntercept;
     FIdIMAP4: TIdIMAP4;
     FIdPOP3: TIdPOP3;
     FIdSMTP: TIdSMTP;
@@ -95,6 +105,10 @@ type
     procedure ErrorAccessToken(const Error, ErrorDescription: string);
     procedure IdConnectionReceive(ASender: TIdConnectionIntercept; var ABuffer: TIdBytes);
     procedure IdConnectionSend(ASender: TIdConnectionIntercept; var ABuffer: TIdBytes);
+    procedure LogDetailAuth(const Value: Boolean);
+    procedure LogDetailImap(const Value: Boolean);
+    procedure LogDetailIPop(const Value: Boolean);
+    procedure LogDetailSmtp(const Value: Boolean);
     procedure OAuth2AuthorizationCodeAfterAccessToken(Sender: TObject; const Access_Token, Token_Type, Expires_In, Refresh_Token, Scope, RawParams: string; var
       Handled: Boolean);
     procedure OAuth2ClientCredentialsAfterAccessToken(const Sender: TObject; const AccessToken, TokenType, ExpiresIn, RefreshToken, Scope, RawParams: string; var
@@ -162,6 +176,26 @@ begin
   ConnectImap;
 end;
 
+procedure TFormIMAPTest.chkLogDetailAuthClick(Sender: TObject);
+begin
+  LogDetailAuth(chkLogDetailAuth.Checked);
+end;
+
+procedure TFormIMAPTest.chkLogDetailImapClick(Sender: TObject);
+begin
+  LogDetailImap(chkLogDetailImap.Checked);
+end;
+
+procedure TFormIMAPTest.chkLogDetailPopClick(Sender: TObject);
+begin
+  LogDetailIPop(chkLogDetailPop.Checked);
+end;
+
+procedure TFormIMAPTest.chkLogDetailSmtpClick(Sender: TObject);
+begin
+  LogDetailSmtp(chkLogDetailSmtp.Checked)
+end;
+
 procedure TFormIMAPTest.ConnectImap;
 begin
   try
@@ -170,7 +204,6 @@ begin
       begin
         if not TIdSASLXOAuth(FxOAuthSASLImap.SASL).IsTokenExpired then
         begin
-          FIdIMAP4.UseTLS := utUseImplicitTLS;
           DoLog(sLineBreak + 'IMAP');
 
           DoLog('Start Connect Outlook');
@@ -213,11 +246,9 @@ begin
       begin
         if not TIdSASLXOAuth(FxOAuthSASLPop3.SASL).IsTokenExpired then
         begin
-          FIdPOP3.AuthType := patSASL;
           DoLog(sLineBreak + 'POP3');
           DoLog('Start Connect Outlook');
           FIdPOP3.Host := 'outlook.office365.com';
-          FIdPOP3.UseTLS := utUseImplicitTLS;
 
           DoLog('Connect Outlook');
           FIdPOP3.Connect;
@@ -258,7 +289,6 @@ begin
       begin
         if not TIdSASLXOAuth(FxOAuthSASLSmtp.SASL).IsTokenExpired then
         begin
-          FIdSMTP.AuthType := satSASL;
           DoLog(sLineBreak + 'SMTP');
           DoLog('Start Connect Outlook');
           FIdSMTP.Host := 'outlook.office365.com';
@@ -320,6 +350,7 @@ begin
   FIdSSLIOHandlerSocketOpenSSLSmtp.SSLOptions.Method := sslvTLSv1_2;
   FIdSSLIOHandlerSocketOpenSSLSmtp.SSLOptions.SSLVersions := [sslvTLSv1_2];
   FIdSSLIOHandlerSocketOpenSSLSmtp.SSLOptions.Mode := sslmClient;
+  FIdSSLIOHandlerSocketOpenSSLSmtp.Intercept := FIdConnectionInterceptSmtp;
 end;
 
 procedure TFormIMAPTest.CrearteIdIMAP4;
@@ -343,6 +374,7 @@ begin
   FIdPOP3.AuthType := patSASL;
   FIdPOP3.AutoLogin := False;
   FIdPOP3.OnStatus := StatusConnection;
+  FIdPOP3.Intercept := FIdConnectionInterceptPop;
 end;
 
 procedure TFormIMAPTest.CreateIdSMTP;
@@ -352,6 +384,7 @@ begin
   FIdSMTP.AuthType := satSASL;
   FIdSMTP.UseTLS := utUseRequireTLS;
   FIdSMTP.OnStatus := StatusConnection;
+  FIdSMTP.Intercept := FIdConnectionInterceptSmtp;
 end;
 
 procedure TFormIMAPTest.CreateIdSSLIOHandlerSocketOpenSSLPop;
@@ -362,6 +395,7 @@ begin
   FIdSSLIOHandlerSocketOpenSSLPop.SSLOptions.Method := sslvTLSv1_2;
   FIdSSLIOHandlerSocketOpenSSLPop.SSLOptions.SSLVersions := [sslvTLSv1_2];
   FIdSSLIOHandlerSocketOpenSSLPop.SSLOptions.Mode := sslmClient;
+  FIdSSLIOHandlerSocketOpenSSLPop.Intercept := FIdConnectionInterceptPop;
 end;
 
 procedure TFormIMAPTest.DoLog(const Text: string);
@@ -386,19 +420,18 @@ begin
   edtUrlToken.Text := FUrlToken;
 
   FIdConnectionInterceptIMAP := TIdConnectionIntercept.Create(Self);
-  FIdConnectionInterceptIMAP.OnReceive := IdConnectionReceive;
-  FIdConnectionInterceptIMAP.OnSend := IdConnectionSend;
-
   CrateIdSSLIOHandlerSocketOpenSSLImap;
   CrearteIdIMAP4;
   FxOAuthSASLImap := FIdIMAP4.SASLMechanisms.Add;
   FxOAuthSASLImap.SASL := TIdSASLXOAuth.Create(Self);
 
+  FIdConnectionInterceptPop:= TIdConnectionIntercept.Create(Self);
   CreateIdSSLIOHandlerSocketOpenSSLPop;
   CreateIdPOP3;
   FxOAuthSASLPop3 := FIdPOP3.SASLMechanisms.Add;
   FxOAuthSASLPop3.SASL := TIdSASLXOAuth.Create(Self);
 
+  FIdConnectionInterceptSmtp := TIdConnectionIntercept.Create(Self);
   CrateIdSSLIOHandlerSocketOpenSSLSmtp;
   CreateIdSMTP;
   FxOAuthSASLSmtp := FIdSMTP.SASLMechanisms.Add;
@@ -420,6 +453,62 @@ end;
 procedure TFormIMAPTest.IdConnectionSend(ASender: TIdConnectionIntercept; var ABuffer: TIdBytes);
 begin
   DoLog('S:' + TEncoding.ASCII.GetString(ABuffer));
+end;
+
+procedure TFormIMAPTest.LogDetailAuth(const Value: Boolean);
+begin
+  if Value then
+  begin
+    FRopcFlow.OnReceive := IdConnectionReceive;
+    FRopcFlow.OnSend := IdConnectionSend;
+  end
+  else
+  begin
+    FRopcFlow.OnReceive := nil;
+    FRopcFlow.OnSend := nil;
+  end
+end;
+
+procedure TFormIMAPTest.LogDetailImap(const Value: Boolean);
+begin
+  if Value then
+  begin
+    FIdConnectionInterceptIMAP.OnReceive := IdConnectionReceive;
+    FIdConnectionInterceptIMAP.OnSend := IdConnectionSend;
+  end
+  else
+  begin
+    FIdConnectionInterceptIMAP.OnReceive := nil;
+    FIdConnectionInterceptIMAP.OnSend := nil;
+  end
+end;
+
+procedure TFormIMAPTest.LogDetailIPop(const Value: Boolean);
+begin
+  if Value then
+  begin
+    FIdConnectionInterceptPop.OnReceive := IdConnectionReceive;
+    FIdConnectionInterceptPop.OnSend := IdConnectionSend;
+  end
+  else
+  begin
+    FIdConnectionInterceptPop.OnReceive := nil;
+    FIdConnectionInterceptPop.OnSend := nil;
+  end
+end;
+
+procedure TFormIMAPTest.LogDetailSmtp(const Value: Boolean);
+begin
+  if Value then
+  begin
+    FIdConnectionInterceptSmtp.OnReceive := IdConnectionReceive;
+    FIdConnectionInterceptSmtp.OnSend := IdConnectionSend;
+  end
+  else
+  begin
+    FIdConnectionInterceptSmtp.OnReceive := nil;
+    FIdConnectionInterceptSmtp.OnSend := nil;
+  end
 end;
 
 procedure TFormIMAPTest.OAuth2AuthorizationCodeAfterAccessToken(Sender: TObject; const Access_Token, Token_Type, Expires_In, Refresh_Token, Scope, RawParams:

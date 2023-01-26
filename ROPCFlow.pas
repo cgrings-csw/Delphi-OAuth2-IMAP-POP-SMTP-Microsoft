@@ -7,7 +7,9 @@ uses
   System.Classes,
   System.SysUtils,
   IdHTTP,
-  IdSSLOpenSSL;
+  IdSSLOpenSSL,
+  IdIntercept,
+  IdGlobal;
 
 type
   TOnErrorAccessToken = reference to procedure(const Error, ErrorDescription: string);
@@ -27,6 +29,7 @@ type
     FClientID: string;
     FClientSecret: string;
     FExpireIn: Int32;
+    FIdConnectionInterceptHttp: TIdConnectionIntercept;
     FIdHTTP: TIdHTTP;
     FInterval: Int32;
     FOnAfterAccessToken: TOnAfterAccessToken;
@@ -37,6 +40,8 @@ type
     FUsername: string;
     FVerification_URI: string;
     LHandler: TIdSSLIOHandlerSocketOpenSSL;
+    procedure SetOnReceive(const Value: TIdInterceptStreamEvent);
+    procedure SetOnSend(const Value: TIdInterceptStreamEvent);
   public
     constructor Create;
     destructor Destroy; override;
@@ -49,6 +54,8 @@ type
     property Username: string read FUsername write FUsername;
     property OnAfterAccessToken: TOnAfterAccessToken read FOnAfterAccessToken write FOnAfterAccessToken;
     property OnErrorAccessToken: TOnErrorAccessToken read FOnErrorAccessToken write FOnErrorAccessToken;
+    property OnReceive: TIdInterceptStreamEvent write SetOnReceive;
+    property OnSend: TIdInterceptStreamEvent write SetOnSend;
   end;
 
 implementation
@@ -58,16 +65,20 @@ uses
 
 constructor TropcFlow.Create;
 begin
+  FIdConnectionInterceptHttp := TIdConnectionIntercept.Create(nil);
+
   LHandler := TIdSSLIOHandlerSocketOpenSSL.Create(nil);
   LHandler.SSLOptions.SSLVersions := [sslvTLSv1_2];
   LHandler.SSLOptions.Mode := sslmClient;
   LHandler.SSLOptions.VerifyMode := [];
   LHandler.SSLOptions.VerifyDepth := 0;
+  LHandler.Intercept := FIdConnectionInterceptHttp;
 
   FIdHTTP := TIdHTTP.Create(nil);
   FIdHTTP.IOHandler := LHandler;
   FIdHTTP.Request.ContentEncoding := 'UTF-8';
   FIdHTTP.Request.ContentType := 'application/x-www-form-urlencoded';
+  FIdHTTP.Intercept := FIdConnectionInterceptHttp;
 end;
 
 destructor TropcFlow.Destroy;
@@ -131,6 +142,16 @@ begin
   begin
     raise Exception.Create('Not set Client ID or Client Secret or Tenant ID or Scope or Username or Password');
   end;
+end;
+
+procedure TropcFlow.SetOnReceive(const Value: TIdInterceptStreamEvent);
+begin
+  FIdConnectionInterceptHttp.OnReceive := Value;
+end;
+
+procedure TropcFlow.SetOnSend(const Value: TIdInterceptStreamEvent);
+begin
+  FIdConnectionInterceptHttp.OnSend := Value;
 end;
 
 end.
