@@ -109,7 +109,7 @@ object FormIMAPTest: TFormIMAPTest
     Height = 412
     Anchors = [akLeft, akTop, akRight, akBottom]
     ScrollBars = ssBoth
-    TabOrder = 11
+    TabOrder = 15
   end
   object edtTenantId: TEdit
     Left = 8
@@ -162,7 +162,7 @@ object FormIMAPTest: TFormIMAPTest
     TabOrder = 1
   end
   object chkLogDetailImap: TCheckBox
-    Left = 360
+    Left = 461
     Top = 108
     Width = 97
     Height = 17
@@ -171,7 +171,7 @@ object FormIMAPTest: TFormIMAPTest
     OnClick = chkLogDetailImapClick
   end
   object chkLogDetailPop: TCheckBox
-    Left = 463
+    Left = 582
     Top = 108
     Width = 97
     Height = 17
@@ -180,12 +180,21 @@ object FormIMAPTest: TFormIMAPTest
     OnClick = chkLogDetailPopClick
   end
   object chkLogDetailSmtp: TCheckBox
-    Left = 566
+    Left = 702
     Top = 108
     Width = 97
     Height = 17
     Caption = 'Log detail SMTP'
     TabOrder = 14
     OnClick = chkLogDetailSmtpClick
+  end
+  object chkLogDetailAuth: TCheckBox
+    Left = 341
+    Top = 108
+    Width = 97
+    Height = 17
+    Caption = 'Log detail OAuth2'
+    TabOrder = 11
+    OnClick = chkLogDetailAuthClick
   end
 end

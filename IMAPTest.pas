@@ -65,10 +65,12 @@ type
     lblTenantId: TLabel;
     lblUrlToken: TLabel;
     Memo1: TMemo;
+    chkLogDetailAuth: TCheckBox;
     procedure btnOAuth2Click(Sender: TObject);
     procedure btnPopClick(Sender: TObject);
     procedure btnSmtpClick(Sender: TObject);
     procedure btn_Test_outlook_IMAPClick(Sender: TObject);
+    procedure chkLogDetailAuthClick(Sender: TObject);
     procedure chkLogDetailImapClick(Sender: TObject);
     procedure chkLogDetailPopClick(Sender: TObject);
     procedure chkLogDetailSmtpClick(Sender: TObject);
@@ -109,6 +111,7 @@ type
     procedure IdConnectionReceive(ASender: TIdConnectionIntercept; var ABuffer: TIdBytes);
     procedure IdConnectionSend(ASender: TIdConnectionIntercept; var ABuffer: TIdBytes);
     procedure LogDetailImap(const Value: Boolean);
+    procedure LogDetailAuth(const Value: Boolean);
     procedure LogDetailIPop(const Value: Boolean);
     procedure LogDetailSmtp(const Value: Boolean);
     procedure OAuth2AuthorizationCodeAfterAccessToken(Sender: TObject; const Access_Token, Token_Type, Expires_In, Refresh_Token, Scope, RawParams: string; var
@@ -175,6 +178,11 @@ end;
 procedure TFormIMAPTest.btn_Test_outlook_IMAPClick(Sender: TObject);
 begin
   ConnectImap;
+end;
+
+procedure TFormIMAPTest.chkLogDetailAuthClick(Sender: TObject);
+begin
+  LogDetailAuth(chkLogDetailAuth.Checked);
 end;
 
 procedure TFormIMAPTest.chkLogDetailImapClick(Sender: TObject);
@@ -462,6 +470,20 @@ begin
   begin
     FIdConnectionInterceptIMAP.OnReceive := nil;
     FIdConnectionInterceptIMAP.OnSend := nil;
+  end
+end;
+
+procedure TFormIMAPTest.LogDetailAuth(const Value: Boolean);
+begin
+  if Value then
+  begin
+    FRopcFlow.OnReceive := IdConnectionReceive;
+    FRopcFlow.OnSend := IdConnectionSend;
+  end
+  else
+  begin
+    FRopcFlow.OnReceive := nil;
+    FRopcFlow.OnSend := nil;
   end
 end;
 
