@@ -85,6 +85,7 @@ destructor TropcFlow.Destroy;
 begin
   LHandler.Free;
   FIdHTTP.Free;
+  FIdConnectionInterceptHttp.Free;
 
   inherited;
 end;
