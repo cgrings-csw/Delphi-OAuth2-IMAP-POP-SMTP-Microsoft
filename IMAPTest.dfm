@@ -3,7 +3,7 @@ object FormIMAPTest: TFormIMAPTest
   Top = 0
   Caption = 'OAuth2 Microsoft Email (OAuth2, IMPA4, POP3 e SMTP)'
   ClientHeight = 564
-  ClientWidth = 815
+  ClientWidth = 935
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -13,7 +13,7 @@ object FormIMAPTest: TFormIMAPTest
   OldCreateOrder = False
   OnCreate = FormCreate
   DesignSize = (
-    815
+    935
     564)
   PixelsPerInch = 96
   TextHeight = 13
@@ -25,7 +25,7 @@ object FormIMAPTest: TFormIMAPTest
     Caption = 'Id tenant'
   end
   object lblEmailAccount: TLabel
-    Left = 511
+    Left = 543
     Top = 49
     Width = 65
     Height = 13
@@ -53,7 +53,7 @@ object FormIMAPTest: TFormIMAPTest
     Caption = 'Scope'
   end
   object lblEmailPassword: TLabel
-    Left = 702
+    Left = 781
     Top = 49
     Width = 73
     Height = 13
@@ -76,7 +76,7 @@ object FormIMAPTest: TFormIMAPTest
     OnClick = btnOAuth2Click
   end
   object btn_Test_outlook_IMAP: TButton
-    Left = 89
+    Left = 87
     Top = 104
     Width = 75
     Height = 25
@@ -85,7 +85,7 @@ object FormIMAPTest: TFormIMAPTest
     OnClick = btn_Test_outlook_IMAPClick
   end
   object btnSmtp: TButton
-    Left = 251
+    Left = 245
     Top = 104
     Width = 75
     Height = 25
@@ -94,7 +94,7 @@ object FormIMAPTest: TFormIMAPTest
     OnClick = btnSmtpClick
   end
   object btnPop: TButton
-    Left = 170
+    Left = 166
     Top = 104
     Width = 75
     Height = 25
@@ -105,11 +105,12 @@ object FormIMAPTest: TFormIMAPTest
   object Memo1: TMemo
     Left = 8
     Top = 144
-    Width = 799
+    Width = 919
     Height = 412
     Anchors = [akLeft, akTop, akRight, akBottom]
     ScrollBars = ssBoth
     TabOrder = 11
+    ExplicitWidth = 799
   end
   object edtTenantId: TEdit
     Left = 8
@@ -119,9 +120,9 @@ object FormIMAPTest: TFormIMAPTest
     TabOrder = 0
   end
   object edtEmailAccount: TEdit
-    Left = 511
+    Left = 541
     Top = 64
-    Width = 185
+    Width = 234
     Height = 21
     TabOrder = 5
   end
@@ -133,29 +134,31 @@ object FormIMAPTest: TFormIMAPTest
     TabOrder = 3
   end
   object edtClientSecret: TEdit
-    Left = 243
+    Left = 241
     Top = 64
-    Width = 262
+    Width = 296
     Height = 21
+    PasswordChar = '*'
     TabOrder = 4
   end
   object edtScope: TEdit
-    Left = 570
+    Left = 554
     Top = 24
-    Width = 237
+    Width = 373
     Height = 21
+    Anchors = [akLeft, akTop, akRight]
     TabOrder = 2
   end
   object edtEmailPassword: TEdit
-    Left = 702
+    Left = 779
     Top = 64
-    Width = 105
+    Width = 148
     Height = 21
     PasswordChar = '*'
     TabOrder = 6
   end
   object edtUrlToken: TEdit
-    Left = 243
+    Left = 229
     Top = 24
     Width = 321
     Height = 21

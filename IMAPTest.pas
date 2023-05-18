@@ -447,12 +447,12 @@ end;
 
 procedure TFormIMAPTest.IdConnectionReceive(ASender: TIdConnectionIntercept; var ABuffer: TIdBytes);
 begin
-  DoLog('R:' + TEncoding.ASCII.GetString(ABuffer));
+  DoLog('Receive: ' + TEncoding.ASCII.GetString(ABuffer));
 end;
 
 procedure TFormIMAPTest.IdConnectionSend(ASender: TIdConnectionIntercept; var ABuffer: TIdBytes);
 begin
-  DoLog('S:' + TEncoding.ASCII.GetString(ABuffer));
+  DoLog('Send: ' + TEncoding.ASCII.GetString(ABuffer));
 end;
 
 procedure TFormIMAPTest.LogDetailAuth(const Value: Boolean);
